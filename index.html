@@ -371,6 +371,10 @@ Aceite"></textarea>
     </div>
   </div>
 
+  <div class="actions" id="vaciarTodoWrap" style="display:none; margin:0 0 20px;">
+    <button class="btn-danger-text" onclick="vaciarTodasLasTablas()">Vaciar todas las tablas (ventas y stock)</button>
+  </div>
+
   <div class="actions" id="unirWrap" style="display:none;">
     <button class="btn-main" onclick="unir()">Unir datos</button>
   </div>
@@ -463,6 +467,7 @@ async function guardarYConstruir(){
   construirTablaEntrada('ventasTable');
   construirTablaEntrada('stockTable');
   document.getElementById('inputsWrap').style.display = 'grid';
+  document.getElementById('vaciarTodoWrap').style.display = 'flex';
   document.getElementById('unirWrap').style.display = 'flex';
   document.getElementById('ajustesDetails').removeAttribute('open');
   document.getElementById('resultPanel').style.display = 'none';
@@ -502,6 +507,7 @@ function construirDesdeGuardado(prods, cids){
   construirTablaEntrada('ventasTable');
   construirTablaEntrada('stockTable');
   document.getElementById('inputsWrap').style.display = 'grid';
+  document.getElementById('vaciarTodoWrap').style.display = 'flex';
   document.getElementById('unirWrap').style.display = 'flex';
   document.getElementById('ajustesDetails').removeAttribute('open');
 }
@@ -516,6 +522,7 @@ function borrarAjustesGuardados(){
   document.getElementById('checklist').innerHTML = '<div class="checklist-empty">Escribe tus productos arriba y haz clic en "Actualizar lista de productos".</div>';
   document.getElementById('btnGuardarAjustes').disabled = true;
   document.getElementById('inputsWrap').style.display = 'none';
+  document.getElementById('vaciarTodoWrap').style.display = 'none';
   document.getElementById('unirWrap').style.display = 'none';
   document.getElementById('resultPanel').style.display = 'none';
   document.getElementById('ajustesDetails').setAttribute('open', '');
@@ -563,6 +570,15 @@ function vaciarFila(tableId, rowIdx){
     input.value = '';
   });
   guardarDatosTablas();
+}
+
+function vaciarTodasLasTablas(){
+  const confirmado = confirm('¿Vaciar todos los datos de Ventas y Stock? Esta acción no se puede deshacer.');
+  if(!confirmado) return;
+  document.querySelectorAll('.cell-input').forEach(input => { input.value = ''; });
+  guardarDatosTablas();
+  document.getElementById('resultPanel').style.display = 'none';
+  mostrarToast('Se vaciaron todas las tablas.');
 }
 
 function leerTablaCruda(tableId){
