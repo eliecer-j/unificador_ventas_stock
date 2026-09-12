@@ -274,6 +274,14 @@
     border-radius:4px;
   }
   .row-copy-btn:hover{color:var(--ink); border-color:var(--accent);}
+  tr.row-copied td{
+    background:var(--accent-dim);
+  }
+  tr.row-copied .row-copy-btn{
+    background:var(--accent);
+    color:#08120d;
+    border-color:var(--accent);
+  }
   .row-clear-btn{
     background:transparent;
     border:1px solid var(--panel-border);
@@ -387,7 +395,9 @@ Aceite"></textarea>
         <span><span class="dot" style="background:var(--danger)"></span>stock menor que ventas</span>
         <span><span class="dot" style="background:var(--ink-dim)"></span>sin dato</span>
         <span><span class="dot" style="background:var(--ink-dim)"></span>vacío = sin control de stock</span>
+        <span><span class="dot" style="background:var(--accent)"></span>fila ya copiada</span>
       </div>
+      <button class="btn-danger-text" onclick="limpiarMarcasCopiado()">Limpiar marcas de copiado</button>
     </div>
     <div style="overflow-x:auto;">
       <table id="resultTable"></table>
@@ -699,7 +709,7 @@ function renderTabla(rows){
   ciudades.forEach(c => totales[c] = { ventas:0, stock:0 });
 
   rows.forEach((row, idx) => {
-    html += `<tr><td class="producto">${row.producto}</td><td><button class="row-copy-btn" onclick="copiarFila(${idx})">Copiar</button></td>`;
+    html += `<tr data-idx="${idx}"><td class="producto">${row.producto}</td><td><button class="row-copy-btn" onclick="copiarFila(${idx})">Copiar</button></td>`;
     ciudades.forEach(ciudad => {
       const d = row.ciudades[ciudad];
       const v = d.ventas;
@@ -785,6 +795,24 @@ function copiarFila(idx){
     out += `${formatoValor(d.ventas)}\t${formatoValor(d.stock)}`;
   });
   copiarAlPortapapeles(out);
+  marcarFilaCopiada(idx);
+}
+
+function marcarFilaCopiada(idx){
+  const fila = document.querySelector(`#resultTable tbody tr[data-idx="${idx}"]`);
+  if(!fila) return;
+  fila.classList.add('row-copied');
+  const btn = fila.querySelector('.row-copy-btn');
+  if(btn) btn.textContent = 'Copiada ✓';
+}
+
+function limpiarMarcasCopiado(){
+  document.querySelectorAll('#resultTable tbody tr.row-copied').forEach(fila => {
+    fila.classList.remove('row-copied');
+    const btn = fila.querySelector('.row-copy-btn');
+    if(btn) btn.textContent = 'Copiar';
+  });
+  mostrarToast('Se limpiaron las marcas de copiado.');
 }
 
 function copiarTodo(){
