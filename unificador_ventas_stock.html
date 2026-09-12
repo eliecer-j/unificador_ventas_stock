@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Unificador de ventas y stock</title>
+<style>
+  :root{
+    --bg:#0f1512;
+    --panel:#141b17;
+    --panel-alt:#101512;
+    --panel-border:#25332c;
+    --ink:#e9efe9;
+    --ink-dim:#93a69b;
+    --accent:#5fb98c;
+    --accent-dim:#2c4a3b;
+    --danger:#e0654f;
+    --danger-bg:#3a2420;
+    --warn:#d9a54a;
+    --font-ui: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-num: 'Consolas', 'SFMono-Regular', Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-ui);
+    padding:32px 24px 80px;
+    line-height:1.4;
+  }
+  h1{
+    font-size:20px;
+    font-weight:600;
+    margin:0 0 4px;
+    letter-spacing:0.2px;
+  }
+  .subtitle{
+    color:var(--ink-dim);
+    font-size:13px;
+    margin:0 0 28px;
+  }
+  .wrap{
+    max-width:1100px;
+    margin:0 auto;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:8px;
+    padding:16px;
+  }
+  .panel-label{
+    font-size:12px;
+    color:var(--ink-dim);
+    margin-bottom:8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .panel-label b{color:var(--ink); font-weight:600; font-size:13px;}
+  textarea, .text-input{
+    width:100%;
+    background:#0b0f0d;
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    color:var(--ink);
+    font-family:var(--font-num);
+    font-size:13px;
+    padding:9px 10px;
+  }
+  textarea{height:90px; resize:vertical;}
+  textarea:focus, .text-input:focus{outline:1px solid var(--accent); border-color:var(--accent);}
+
+  /* ---- Ajustes (panel administrativo) ---- */
+  details.ajustes{ margin-bottom:20px; }
+  details.ajustes summary{
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    padding:12px 16px;
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:8px;
+    list-style:none;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  details.ajustes summary::-webkit-details-marker{display:none;}
+  details.ajustes summary .chev{color:var(--ink-dim); font-size:12px;}
+  details.ajustes[open] summary{border-radius:8px 8px 0 0; border-bottom:none;}
+  .ajustes-body{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-top:none;
+    border-radius:0 0 8px 8px;
+    padding:20px;
+  }
+  .step{
+    display:flex;
+    gap:14px;
+    padding:16px 0;
+    border-bottom:1px solid var(--panel-border);
+  }
+  .step:last-of-type{border-bottom:none; padding-bottom:4px;}
+  .step-num{
+    flex:0 0 auto;
+    width:22px; height:22px;
+    border-radius:50%;
+    background:var(--accent-dim);
+    color:var(--accent);
+    font-size:12px;
+    font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    margin-top:1px;
+  }
+  .step-body{flex:1; min-width:0;}
+  .step-title{font-size:13.5px; font-weight:600; color:var(--ink); margin-bottom:3px;}
+  .step-help{font-size:12px; color:var(--ink-dim); margin-bottom:10px;}
+  .step-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+
+  .checklist{
+    display:flex;
+    flex-direction:column;
+    gap:0;
+    border:1px solid var(--panel-border);
+    border-radius:6px;
+    overflow:hidden;
+  }
+  .checklist-empty{
+    padding:12px;
+    font-size:12px;
+    color:var(--ink-dim);
+    background:#0b0f0d;
+  }
+  .checklist-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:9px 12px;
+    background:#0b0f0d;
+    border-bottom:1px solid var(--panel-border);
+    font-size:13px;
+  }
+  .checklist-item:last-child{border-bottom:none;}
+  .checklist-item input[type="checkbox"]{accent-color:var(--accent); width:15px; height:15px; flex:0 0 auto;}
+  .checklist-item .nombre{flex:1; font-family:var(--font-ui);}
+  .checklist-item .tag{
+    font-size:11px;
+    color:var(--ink-dim);
+    white-space:nowrap;
+  }
+
+  .ajustes-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    margin-top:18px;
+    flex-wrap:wrap;
+  }
+  #estadoAjustes{
+    font-size:12px;
+    color:var(--ink-dim);
+  }
+  #estadoAjustes.ok{color:var(--accent);}
+  #estadoAjustes.error{color:var(--danger);}
+  .footer-actions{display:flex; gap:10px;}
+
+  .inputs{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+    margin-bottom:20px;
+  }
+
+  button{
+    font-family:var(--font-ui);
+    font-size:14px;
+    font-weight:600;
+    border-radius:6px;
+    border:none;
+    cursor:pointer;
+    padding:11px 22px;
+  }
+  .btn-main{ background:var(--accent); color:#08120d; }
+  .btn-main:hover{background:#72c99b;}
+  .btn-main:disabled{background:var(--accent-dim); color:var(--ink-dim); cursor:not-allowed;}
+  .btn-secondary{
+    background:transparent;
+    color:var(--ink-dim);
+    border:1px solid var(--panel-border);
+    font-weight:500;
+  }
+  .btn-secondary:hover{color:var(--ink); border-color:var(--ink-dim);}
+  .btn-small{padding:8px 14px; font-size:12.5px;}
+  .btn-danger-text{
+    background:none; border:none; color:var(--ink-dim);
+    font-size:12px; font-weight:500; text-decoration:underline;
+    padding:4px; cursor:pointer;
+  }
+  .btn-danger-text:hover{color:var(--danger);}
+
+  .actions{ display:flex; justify-content:center; margin:24px 0; }
+  #msg{
+    text-align:center;
+    color:var(--warn);
+    font-size:13px;
+    margin-bottom:16px;
+    min-height:18px;
+  }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th, td{
+    padding:7px 8px;
+    text-align:right;
+    border-bottom:1px solid var(--panel-border);
+    font-family:var(--font-num);
+  }
+  th{ font-family:var(--font-ui); color:var(--ink-dim); font-weight:500; font-size:11.5px; }
+  td.producto, th.producto{
+    text-align:left;
+    font-family:var(--font-ui);
+    font-weight:500;
+    color:var(--ink);
+    white-space:nowrap;
+  }
+  tr:last-child td{border-bottom:none;}
+  .cell-input{
+    width:100%;
+    min-width:56px;
+    background:#0b0f0d;
+    border:1px solid var(--panel-border);
+    border-radius:4px;
+    color:var(--ink);
+    font-family:var(--font-num);
+    font-size:13px;
+    padding:5px 6px;
+    text-align:right;
+  }
+  .cell-input:focus{outline:1px solid var(--accent); border-color:var(--accent);}
+  .cell-na{
+    color:var(--ink-dim);
+    font-size:12px;
+    font-style:normal;
+  }
+
+  .result-panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:8px;
+    padding:16px;
+    display:none;
+  }
+  .result-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+  .result-head b{font-size:14px;}
+  .legend{ display:flex; gap:16px; font-size:12px; color:var(--ink-dim); flex-wrap:wrap; }
+  .legend span{display:flex; align-items:center; gap:5px;}
+  .dot{width:8px;height:8px;border-radius:50%; display:inline-block;}
+  th.city-group{ text-align:center; border-left:1px solid var(--panel-border); color:var(--ink); font-weight:600; }
+  td.city-start{border-left:1px solid var(--panel-border);}
+  tr.total-row td{ border-top:1px solid var(--panel-border); font-weight:700; color:var(--ink); padding-top:10px; }
+  .stock-low{color:var(--danger); font-weight:700;}
+  .stock-low-cell{background:var(--danger-bg);}
+  .missing{color:var(--ink-dim); font-style:normal;}
+  .copy-row{ display:flex; justify-content:center; margin-top:20px; }
+  .row-copy-btn{
+    background:transparent;
+    border:1px solid var(--panel-border);
+    color:var(--ink-dim);
+    padding:4px 8px;
+    font-size:11px;
+    font-weight:500;
+    border-radius:4px;
+  }
+  .row-copy-btn:hover{color:var(--ink); border-color:var(--accent);}
+  .row-clear-btn{
+    background:transparent;
+    border:1px solid var(--panel-border);
+    color:var(--ink-dim);
+    padding:4px 8px;
+    font-size:11px;
+    font-weight:500;
+    border-radius:4px;
+    white-space:nowrap;
+  }
+  .row-clear-btn:hover{color:var(--danger); border-color:var(--danger);}
+  th.copy-col{width:1%;}
+  .toast{
+    position:fixed;
+    bottom:28px;
+    left:50%;
+    transform:translateX(-50%) translateY(10px);
+    background:var(--accent);
+    color:#08120d;
+    padding:9px 18px;
+    border-radius:6px;
+    font-size:13px;
+    font-weight:600;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease, transform .2s ease;
+    max-width:80vw;
+    text-align:center;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Unificador de ventas y stock</h1>
+  <p class="subtitle">Configura tus productos y ciudades una vez; los ajustes se guardan automáticamente.</p>
+
+  <details class="ajustes" id="ajustesDetails" open>
+    <summary>Ajustes <span class="chev">▾</span></summary>
+    <div class="ajustes-body">
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Productos y ciudades</div>
+          <div class="step-help">Un producto por línea. Ciudades separadas por coma, en el orden en que las vas a pegar luego.</div>
+          <div class="step-row">
+            <div>
+              <div class="panel-label"><b>Productos</b></div>
+              <textarea id="productosInput" style="height:120px;" placeholder="Panela
+Arroz
+Aceite"></textarea>
+            </div>
+            <div>
+              <div class="panel-label"><b>Ciudades</b></div>
+              <input type="text" id="ciudadesInput" class="text-input" placeholder="Madrid, Mopos, Valle">
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn-secondary btn-small" onclick="generarChecklist()">Actualizar lista de productos</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Productos sin control de stock</div>
+          <div class="step-help">Marca los productos que solo manejas por ventas (no llevas inventario de ellos). No se les pedirá stock ni se marcarán en rojo.</div>
+          <div class="checklist" id="checklist">
+            <div class="checklist-empty">Escribe tus productos arriba y haz clic en "Actualizar lista de productos".</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ajustes-footer">
+        <span id="estadoAjustes"></span>
+        <div class="footer-actions">
+          <button class="btn-danger-text" onclick="borrarAjustesGuardados()">Borrar ajustes guardados</button>
+          <button class="btn-main" id="btnGuardarAjustes" onclick="guardarYConstruir()" disabled>Guardar ajustes y continuar</button>
+        </div>
+      </div>
+
+    </div>
+  </details>
+
+  <div class="inputs" id="inputsWrap" style="display:none;">
+    <div class="panel">
+      <div class="panel-label"><b>Ventas</b><span>pega desde Excel</span></div>
+      <div style="overflow-x:auto;"><table id="ventasTable"></table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-label"><b>Stock</b><span>pega desde Excel</span></div>
+      <div style="overflow-x:auto;"><table id="stockTable"></table></div>
+    </div>
+  </div>
+
+  <div class="actions" id="unirWrap" style="display:none;">
+    <button class="btn-main" onclick="unir()">Unir datos</button>
+  </div>
+  <div id="msg"></div>
+
+  <div class="result-panel" id="resultPanel">
+    <div class="result-head">
+      <b>Resultado</b>
+      <div class="legend">
+        <span><span class="dot" style="background:var(--danger)"></span>stock menor que ventas</span>
+        <span><span class="dot" style="background:var(--ink-dim)"></span>sin dato</span>
+        <span><span class="dot" style="background:var(--ink-dim)"></span>vacío = sin control de stock</span>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table id="resultTable"></table>
+    </div>
+    <div class="copy-row">
+      <button class="btn-secondary" onclick="copiarTodo()">Copiar resultado completo</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast">Copiado al portapapeles</div>
+
+<script>
+const STORAGE_KEY = 'config-productos-ciudades';
+const DATA_STORAGE_KEY = 'datos-ventas-stock';
+
+let productos = [];
+let ciudades = [];
+let soloVentas = new Set();
+let lastResultRows = null;
+
+// ---------- Ajustes: checklist ----------
+
+function generarChecklist(){
+  const productosTxt = document.getElementById('productosInput').value;
+  const nombres = productosTxt.split('\n').map(p => p.trim()).filter(p => p !== '');
+  const checklist = document.getElementById('checklist');
+  const btnGuardar = document.getElementById('btnGuardarAjustes');
+
+  if(nombres.length === 0){
+    checklist.innerHTML = '<div class="checklist-empty">Escribe al menos un producto arriba.</div>';
+    btnGuardar.disabled = true;
+    return;
+  }
+
+  let html = '';
+  nombres.forEach(nombre => {
+    const marcado = soloVentas.has(nombre) ? 'checked' : '';
+    html += `<div class="checklist-item">
+      <input type="checkbox" id="chk-${CSS.escape(nombre)}" data-nombre="${nombre.replace(/"/g,'&quot;')}" ${marcado}>
+      <label class="nombre" for="chk-${CSS.escape(nombre)}">${nombre}</label>
+      <span class="tag">solo ventas</span>
+    </div>`;
+  });
+  checklist.innerHTML = html;
+  btnGuardar.disabled = false;
+}
+
+function leerChecklist(){
+  const marcados = new Set();
+  document.querySelectorAll('#checklist input[type="checkbox"]').forEach(chk => {
+    if(chk.checked) marcados.add(chk.dataset.nombre);
+  });
+  return marcados;
+}
+
+function mostrarEstadoAjustes(texto, tipo){
+  const el = document.getElementById('estadoAjustes');
+  el.textContent = texto;
+  el.className = tipo || '';
+}
+
+// ---------- Ajustes: guardar / cargar / borrar ----------
+
+async function guardarYConstruir(){
+  const productosTxt = document.getElementById('productosInput').value;
+  const ciudadesTxt = document.getElementById('ciudadesInput').value;
+
+  productos = productosTxt.split('\n').map(p => p.trim()).filter(p => p !== '');
+  ciudades = ciudadesTxt.split(',').map(c => c.trim()).filter(c => c !== '');
+  soloVentas = leerChecklist();
+
+  if(productos.length === 0 || ciudades.length === 0){
+    mostrarEstadoAjustes('Escribe al menos un producto y una ciudad.', 'error');
+    return;
+  }
+
+  construirTablaEntrada('ventasTable');
+  construirTablaEntrada('stockTable');
+  document.getElementById('inputsWrap').style.display = 'grid';
+  document.getElementById('unirWrap').style.display = 'flex';
+  document.getElementById('ajustesDetails').removeAttribute('open');
+  document.getElementById('resultPanel').style.display = 'none';
+
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      productos, ciudades, soloVentas: Array.from(soloVentas)
+    }));
+    mostrarEstadoAjustes('Ajustes guardados en este navegador. Se mantendrán la próxima vez que abras el archivo aquí.', 'ok');
+  } catch(err){
+    mostrarEstadoAjustes('Los ajustes se aplicaron, pero no se pudieron guardar (¿modo incógnito o almacenamiento bloqueado?).', 'error');
+  }
+}
+
+function cargarAjustesGuardados(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+
+    document.getElementById('productosInput').value = (data.productos || []).join('\n');
+    document.getElementById('ciudadesInput').value = (data.ciudades || []).join(', ');
+    soloVentas = new Set(data.soloVentas || []);
+
+    generarChecklist();
+    construirDesdeGuardado(data.productos || [], data.ciudades || []);
+    mostrarEstadoAjustes('Se cargaron los ajustes guardados en este navegador.', 'ok');
+  } catch(err){
+    // no hay ajustes guardados todavía, o el navegador bloquea localStorage
+  }
+}
+
+function construirDesdeGuardado(prods, cids){
+  productos = prods;
+  ciudades = cids;
+  if(productos.length === 0 || ciudades.length === 0) return;
+  construirTablaEntrada('ventasTable');
+  construirTablaEntrada('stockTable');
+  document.getElementById('inputsWrap').style.display = 'grid';
+  document.getElementById('unirWrap').style.display = 'flex';
+  document.getElementById('ajustesDetails').removeAttribute('open');
+}
+
+function borrarAjustesGuardados(){
+  try{
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(DATA_STORAGE_KEY);
+  } catch(err){ /* nada que borrar */ }
+  document.getElementById('productosInput').value = '';
+  document.getElementById('ciudadesInput').value = '';
+  document.getElementById('checklist').innerHTML = '<div class="checklist-empty">Escribe tus productos arriba y haz clic en "Actualizar lista de productos".</div>';
+  document.getElementById('btnGuardarAjustes').disabled = true;
+  document.getElementById('inputsWrap').style.display = 'none';
+  document.getElementById('unirWrap').style.display = 'none';
+  document.getElementById('resultPanel').style.display = 'none';
+  document.getElementById('ajustesDetails').setAttribute('open', '');
+  productos = []; ciudades = []; soloVentas = new Set(); lastResultRows = null;
+  mostrarEstadoAjustes('Ajustes borrados de este navegador.', '');
+}
+
+// ---------- Tablas de entrada ----------
+
+function construirTablaEntrada(tableId){
+  const esStock = tableId === 'stockTable';
+  const table = document.getElementById(tableId);
+  let html = '<thead><tr><th class="producto">Producto</th>';
+  ciudades.forEach(c => { html += `<th>${c}</th>`; });
+  html += '<th></th></tr></thead><tbody>';
+
+  productos.forEach((producto, rowIdx) => {
+    html += `<tr><td class="producto">${producto}</td>`;
+    const tieneInputs = !(esStock && soloVentas.has(producto));
+    ciudades.forEach((ciudad, colIdx) => {
+      if(!tieneInputs){
+        html += `<td><span class="cell-na"></span></td>`;
+      } else {
+        html += `<td><input type="text" class="cell-input" data-table="${tableId}" data-row="${rowIdx}" data-col="${colIdx}" inputmode="decimal"></td>`;
+      }
+    });
+    html += tieneInputs
+      ? `<td><button type="button" class="row-clear-btn" onclick="vaciarFila('${tableId}', ${rowIdx})">Vaciar</button></td>`
+      : '<td></td>';
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+
+  table.querySelectorAll('.cell-input').forEach(input => {
+    input.addEventListener('paste', manejarPegado);
+    input.addEventListener('input', guardarDatosTablas);
+  });
+
+  cargarDatosTablas(tableId);
+}
+
+function vaciarFila(tableId, rowIdx){
+  document.querySelectorAll(`.cell-input[data-table="${tableId}"][data-row="${rowIdx}"]`).forEach(input => {
+    input.value = '';
+  });
+  guardarDatosTablas();
+}
+
+function leerTablaCruda(tableId){
+  const datos = {};
+  document.querySelectorAll(`.cell-input[data-table="${tableId}"]`).forEach(input => {
+    const row = parseInt(input.dataset.row, 10);
+    const col = parseInt(input.dataset.col, 10);
+    const producto = productos[row];
+    const ciudad = ciudades[col];
+    if(producto === undefined || ciudad === undefined) return;
+    if(!datos[producto]) datos[producto] = {};
+    datos[producto][ciudad] = input.value;
+  });
+  return datos;
+}
+
+function guardarDatosTablas(){
+  try{
+    const datos = {
+      ventas: leerTablaCruda('ventasTable'),
+      stock: leerTablaCruda('stockTable')
+    };
+    localStorage.setItem(DATA_STORAGE_KEY, JSON.stringify(datos));
+  } catch(err){ /* almacenamiento no disponible */ }
+}
+
+function cargarDatosTablas(tableId){
+  try{
+    const raw = localStorage.getItem(DATA_STORAGE_KEY);
+    if(!raw) return;
+    const datos = JSON.parse(raw);
+    const fuente = tableId === 'ventasTable' ? datos.ventas : datos.stock;
+    if(!fuente) return;
+    document.querySelectorAll(`.cell-input[data-table="${tableId}"]`).forEach(input => {
+      const row = parseInt(input.dataset.row, 10);
+      const col = parseInt(input.dataset.col, 10);
+      const producto = productos[row];
+      const ciudad = ciudades[col];
+      if(fuente[producto] && fuente[producto][ciudad] !== undefined){
+        input.value = fuente[producto][ciudad];
+      }
+    });
+  } catch(err){ /* no hay datos guardados todavía */ }
+}
+
+function manejarPegado(e){
+  e.preventDefault();
+  const texto = (e.clipboardData || window.clipboardData).getData('text');
+  const filas = texto.split('\n').filter(l => l !== '').map(l => l.split('\t'));
+
+  const tableId = e.target.dataset.table;
+  const filaInicio = parseInt(e.target.dataset.row, 10);
+  const colInicio = parseInt(e.target.dataset.col, 10);
+
+  filas.forEach((valores, i) => {
+    valores.forEach((valor, j) => {
+      const r = filaInicio + i;
+      const c = colInicio + j;
+      const destino = document.querySelector(`.cell-input[data-table="${tableId}"][data-row="${r}"][data-col="${c}"]`);
+      if(destino) destino.value = valor.trim();
+    });
+  });
+  guardarDatosTablas();
+}
+
+function leerTabla(tableId){
+  const esStock = tableId === 'stockTable';
+  const datos = {};
+  productos.forEach((producto, rowIdx) => {
+    datos[producto] = {};
+    ciudades.forEach((ciudad, colIdx) => {
+      if(esStock && soloVentas.has(producto)){
+        datos[producto][ciudad] = 'NA';
+        return;
+      }
+      const input = document.querySelector(`.cell-input[data-table="${tableId}"][data-row="${rowIdx}"][data-col="${colIdx}"]`);
+      const val = input ? input.value.trim() : '';
+      datos[producto][ciudad] = val === '' ? null : Number(val);
+    });
+  });
+  return datos;
+}
+
+// ---------- Unir y mostrar resultado ----------
+
+function unir(){
+  const msg = document.getElementById('msg');
+  msg.textContent = '';
+
+  const ventas = leerTabla('ventasTable');
+  const stock = leerTabla('stockTable');
+
+  const rows = productos.map(producto => {
+    const row = { producto, ciudades: {} };
+    ciudades.forEach(ciudad => {
+      row.ciudades[ciudad] = {
+        ventas: ventas[producto][ciudad],
+        stock: stock[producto][ciudad]
+      };
+    });
+    return row;
+  });
+
+  lastResultRows = rows;
+  renderTabla(rows);
+  document.getElementById('resultPanel').style.display = 'block';
+}
+
+function renderTabla(rows){
+  const table = document.getElementById('resultTable');
+  let html = '<thead><tr><th class="producto">Producto</th><th class="copy-col"></th>';
+  ciudades.forEach(c => { html += `<th class="city-group" colspan="2">${c}</th>`; });
+  html += '</tr><tr><th class="producto"></th><th></th>';
+  ciudades.forEach(() => { html += '<th class="city-start">Ventas</th><th>Stock</th>'; });
+  html += '</tr></thead><tbody>';
+
+  const totales = {};
+  ciudades.forEach(c => totales[c] = { ventas:0, stock:0 });
+
+  rows.forEach((row, idx) => {
+    html += `<tr><td class="producto">${row.producto}</td><td><button class="row-copy-btn" onclick="copiarFila(${idx})">Copiar</button></td>`;
+    ciudades.forEach(ciudad => {
+      const d = row.ciudades[ciudad];
+      const v = d.ventas;
+      const s = d.stock;
+
+      const vCell = v === null ? '<span class="missing">—</span>' : v;
+
+      let sCell, sCellClass;
+      if(s === 'NA'){
+        sCell = '';
+        sCellClass = '';
+      } else if(s === null){
+        sCell = '<span class="missing">—</span>';
+        sCellClass = 'missing';
+      } else {
+        const bajo = (v !== null && s < v);
+        sCell = s;
+        sCellClass = bajo ? 'stock-low stock-low-cell' : '';
+      }
+
+      html += `<td class="city-start">${vCell}</td><td class="${sCellClass}">${sCell}</td>`;
+      if(v !== null) totales[ciudad].ventas += v;
+      if(typeof s === 'number') totales[ciudad].stock += s;
+    });
+    html += `</tr>`;
+  });
+
+  html += `<tr class="total-row"><td class="producto">Total</td><td></td>`;
+  ciudades.forEach(c => {
+    html += `<td class="city-start">${totales[c].ventas}</td><td>${totales[c].stock}</td>`;
+  });
+  html += '</tr></tbody>';
+
+  table.innerHTML = html;
+}
+
+// ---------- Copiado ----------
+
+function mostrarToast(texto){
+  const toast = document.getElementById('toast');
+  toast.textContent = texto || 'Copiado al portapapeles';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+function copiarAlPortapapeles(texto){
+  if(navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(texto).then(() => mostrarToast()).catch(() => copiarConRespaldo(texto));
+  } else {
+    copiarConRespaldo(texto);
+  }
+}
+
+function copiarConRespaldo(texto){
+  try{
+    const temp = document.createElement('textarea');
+    temp.value = texto;
+    temp.style.position = 'fixed';
+    temp.style.opacity = '0';
+    document.body.appendChild(temp);
+    temp.focus();
+    temp.select();
+    const exito = document.execCommand('copy');
+    document.body.removeChild(temp);
+    mostrarToast(exito ? undefined : 'No se pudo copiar. Selecciona y copia manualmente.');
+  } catch(err){
+    mostrarToast('No se pudo copiar. Selecciona y copia manualmente.');
+  }
+}
+
+function formatoValor(v){
+  if(v === 'NA') return '';
+  if(v === null || v === undefined) return '';
+  return v;
+}
+
+function copiarFila(idx){
+  const row = lastResultRows[idx];
+  let out = '';
+  ciudades.forEach((c, i) => {
+    const d = row.ciudades[c];
+    if(i > 0) out += '\t';
+    out += `${formatoValor(d.ventas)}\t${formatoValor(d.stock)}`;
+  });
+  copiarAlPortapapeles(out);
+}
+
+function copiarTodo(){
+  if(!lastResultRows) return;
+  let out = 'Producto';
+  ciudades.forEach(c => { out += `\t${c} Ventas\t${c} Stock`; });
+  out += '\n';
+  lastResultRows.forEach(row => {
+    out += row.producto;
+    ciudades.forEach(c => {
+      const d = row.ciudades[c];
+      out += `\t${formatoValor(d.ventas)}\t${formatoValor(d.stock)}`;
+    });
+    out += '\n';
+  });
+  copiarAlPortapapeles(out);
+}
+
+// ---------- Inicio ----------
+cargarAjustesGuardados();
+</script>
+</body>
+</html>
