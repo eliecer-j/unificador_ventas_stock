@@ -418,6 +418,14 @@ let ciudades = [];
 let soloVentas = new Set();
 let lastResultRows = null;
 
+function esCiudadSoloVenta(ciudad){
+  return ciudad.trim().toUpperCase() === 'FABRICA';
+}
+
+function esCeldaSoloVenta(producto, ciudad){
+  return soloVentas.has(producto) || esCiudadSoloVenta(ciudad);
+}
+
 // ---------- Ajustes: checklist ----------
 
 function generarChecklist(){
@@ -551,15 +559,17 @@ function construirTablaEntrada(tableId){
 
   productos.forEach((producto, rowIdx) => {
     html += `<tr><td class="producto">${producto}</td>`;
-    const tieneInputs = !(esStock && soloVentas.has(producto));
+    let tieneAlgunInput = false;
     ciudades.forEach((ciudad, colIdx) => {
-      if(!tieneInputs){
+      const bloqueada = esStock && esCeldaSoloVenta(producto, ciudad);
+      if(bloqueada){
         html += `<td><span class="cell-na"></span></td>`;
       } else {
+        tieneAlgunInput = true;
         html += `<td><input type="text" class="cell-input" data-table="${tableId}" data-row="${rowIdx}" data-col="${colIdx}" inputmode="decimal"></td>`;
       }
     });
-    html += tieneInputs
+    html += tieneAlgunInput
       ? `<td><button type="button" class="row-clear-btn" onclick="vaciarFila('${tableId}', ${rowIdx})">Vaciar</button></td>`
       : '<td></td>';
     html += '</tr>';
@@ -660,7 +670,7 @@ function leerTabla(tableId){
   productos.forEach((producto, rowIdx) => {
     datos[producto] = {};
     ciudades.forEach((ciudad, colIdx) => {
-      if(esStock && soloVentas.has(producto)){
+      if(esStock && esCeldaSoloVenta(producto, ciudad)){
         datos[producto][ciudad] = 'NA';
         return;
       }
@@ -711,9 +721,16 @@ function unir(){
 function renderTabla(rows){
   const table = document.getElementById('resultTable');
   let html = '<thead><tr><th class="producto">Producto</th><th class="copy-col"></th>';
-  ciudades.forEach(c => { html += `<th class="city-group" colspan="2">${c}</th>`; });
+  ciudades.forEach(c => {
+    const colspan = esCiudadSoloVenta(c) ? 1 : 2;
+    html += `<th class="city-group" colspan="${colspan}">${c}</th>`;
+  });
   html += '</tr><tr><th class="producto"></th><th></th>';
-  ciudades.forEach(() => { html += '<th class="city-start">Ventas</th><th>Stock</th>'; });
+  ciudades.forEach(c => {
+    html += esCiudadSoloVenta(c)
+      ? '<th class="city-start">Venta</th>'
+      : '<th class="city-start">Ventas</th><th>Stock</th>';
+  });
   html += '</tr></thead><tbody>';
 
   const totales = {};
@@ -727,6 +744,12 @@ function renderTabla(rows){
       const s = d.stock;
 
       const vCell = v === null ? '<span class="missing">—</span>' : v;
+      if(v !== null) totales[ciudad].ventas += v;
+
+      if(esCiudadSoloVenta(ciudad)){
+        html += `<td class="city-start">${vCell}</td>`;
+        return;
+      }
 
       let sCell, sCellClass;
       if(s === 'NA'){
@@ -742,7 +765,6 @@ function renderTabla(rows){
       }
 
       html += `<td class="city-start">${vCell}</td><td class="${sCellClass}">${sCell}</td>`;
-      if(v !== null) totales[ciudad].ventas += v;
       if(typeof s === 'number') totales[ciudad].stock += s;
     });
     html += `</tr>`;
@@ -750,7 +772,9 @@ function renderTabla(rows){
 
   html += `<tr class="total-row"><td class="producto">Total</td><td></td>`;
   ciudades.forEach(c => {
-    html += `<td class="city-start">${totales[c].ventas}</td><td>${totales[c].stock}</td>`;
+    html += esCiudadSoloVenta(c)
+      ? `<td class="city-start">${totales[c].ventas}</td>`
+      : `<td class="city-start">${totales[c].ventas}</td><td>${totales[c].stock}</td>`;
   });
   html += '</tr></tbody>';
 
@@ -799,13 +823,16 @@ function formatoValor(v){
 
 function copiarFila(idx){
   const row = lastResultRows[idx];
-  let out = '';
-  ciudades.forEach((c, i) => {
+  let partes = [];
+  ciudades.forEach(c => {
     const d = row.ciudades[c];
-    if(i > 0) out += '\t';
-    out += `${formatoValor(d.ventas)}\t${formatoValor(d.stock)}`;
+    if(esCeldaSoloVenta(row.producto, c)){
+      partes.push(formatoValor(d.ventas));
+    } else {
+      partes.push(`${formatoValor(d.ventas)}\t${formatoValor(d.stock)}`);
+    }
   });
-  copiarAlPortapapeles(out);
+  copiarAlPortapapeles(partes.join('\t'));
   marcarFilaCopiada(idx);
 }
 
@@ -829,13 +856,19 @@ function limpiarMarcasCopiado(){
 function copiarTodo(){
   if(!lastResultRows) return;
   let out = 'Producto';
-  ciudades.forEach(c => { out += `\t${c} Ventas\t${c} Stock`; });
+  ciudades.forEach(c => {
+    out += esCiudadSoloVenta(c) ? `\t${c} Venta` : `\t${c} Ventas\t${c} Stock`;
+  });
   out += '\n';
   lastResultRows.forEach(row => {
     out += row.producto;
     ciudades.forEach(c => {
       const d = row.ciudades[c];
-      out += `\t${formatoValor(d.ventas)}\t${formatoValor(d.stock)}`;
+      if(esCeldaSoloVenta(row.producto, c)){
+        out += `\t${formatoValor(d.ventas)}`;
+      } else {
+        out += `\t${formatoValor(d.ventas)}\t${formatoValor(d.stock)}`;
+      }
     });
     out += '\n';
   });
