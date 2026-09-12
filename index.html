@@ -674,6 +674,15 @@ function leerTabla(tableId){
 
 // ---------- Unir y mostrar resultado ----------
 
+function tieneAlgunValor(row){
+  return ciudades.some(ciudad => {
+    const d = row.ciudades[ciudad];
+    const ventaConValor = d.ventas !== null && d.ventas !== undefined;
+    const stockConValor = d.stock !== null && d.stock !== undefined && d.stock !== 'NA';
+    return ventaConValor || stockConValor;
+  });
+}
+
 function unir(){
   const msg = document.getElementById('msg');
   msg.textContent = '';
@@ -691,6 +700,8 @@ function unir(){
     });
     return row;
   });
+
+  rows.sort((a, b) => (tieneAlgunValor(b) ? 1 : 0) - (tieneAlgunValor(a) ? 1 : 0));
 
   lastResultRows = rows;
   renderTabla(rows);
